@@ -1,2 +1,2 @@
 # Calculator-Test
-A prototype calculator
+Currently supports addition, subtraction, multiplication and division of two integers.
