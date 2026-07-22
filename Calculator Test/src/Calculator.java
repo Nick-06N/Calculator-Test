@@ -22,7 +22,8 @@ public class Calculator{
         ArrayList<Character> firstNum = new ArrayList<>();
         ArrayList<Character> secondNum = new ArrayList<>();
         if(input != null){
-            firstNum = parseNumber(firstNum,index);
+            char[] calcChars = input.toCharArray();
+            firstNum = parseNumber(firstNum, index, calcChars);
             if(firstNum.isEmpty()){
                 return "Invalid Calculation";
             }
@@ -47,7 +48,7 @@ public class Calculator{
                 index++;
             }
 
-            secondNum = parseNumber(secondNum, index);
+            secondNum = parseNumber(secondNum, index, calcChars);
             if(secondNum.isEmpty()){
                 return "Invalid Calculation";
             }
@@ -89,21 +90,42 @@ public class Calculator{
         return text.toString();
     }
 
-    public ArrayList<Character> parseNumber(ArrayList<Character> argumentNumber,int i){
+    /**
+     * Convert a number into an ArrayList of type Character.
+     * @param argumentNumber    takes in the number that the argument is
+     * @param i                 index of position of list
+     * @param calcChars         the char Array of the whole calculation which is to be processed
+     * @return                  returns ArrayList of Characters corresponding to first numerical argument
+     */
+    public ArrayList<Character> parseNumber(ArrayList<Character> argumentNumber, int i, char[] calcChars){
         if(input != null){
-            char[] calcChars = input.toCharArray();
             digitOfCalculation = calcChars[i];
+            i = spaceRemover(calcChars, i);
             while ((i) < calcChars.length && Character.isDigit(digitOfCalculation)) {
                 argumentNumber.add(digitOfCalculation);
-                index++;
-                i = index;
+                i++;
                 if (i < calcChars.length) {
                     digitOfCalculation = calcChars[i];
                 }
             }
+            i = spaceRemover(calcChars, i);
+            index = i;
             return argumentNumber;
         }
         return null;
+    }
+
+    /**
+     * Checks for spaces before and after numbers given in calculation and removes them
+     */
+    private int spaceRemover(char[] calcChars, int i){
+        if(i < calcChars.length){
+            while(calcChars[i] == ' ' && (i+1) < calcChars.length){
+                i++;
+                digitOfCalculation = calcChars[i];
+            }
+        }
+        return i;
     }
 }
 
