@@ -1,5 +1,6 @@
 import java.awt.*;
 import java.util.ArrayList;
+import java.math.*;
 
 public class Calculator{
     private int output;
@@ -54,27 +55,30 @@ public class Calculator{
             }
         }
 
-        Integer result = null;
+        Double result = null;
         switch(operation){
             case ADD:
-                result = Integer.parseInt(toString(firstNum)) + Integer.parseInt(toString(secondNum));
+                result = Double.parseDouble(toString(firstNum)) + Double.parseDouble(toString(secondNum));
                 break;
             case SUBTRACT:
-                result = Integer.parseInt(toString(firstNum)) - Integer.parseInt(toString(secondNum));
+                result = Double.parseDouble(toString(firstNum)) - Double.parseDouble(toString(secondNum));
                 break;
             case MULTIPLY:
-                result = Integer.parseInt(toString(firstNum)) * Integer.parseInt(toString(secondNum));
+                result = Double.parseDouble(toString(firstNum)) * Double.parseDouble(toString(secondNum));
                 break;
             case DIVIDE:
-                if(Integer.parseInt(toString(secondNum)) == 0){
+                if(Double.parseDouble(toString(secondNum)) == 0){
                     return "Invalid Calculation";
                 }
-                result = Integer.parseInt(toString(firstNum)) / Integer.parseInt(toString(secondNum));
+                result = Double.parseDouble(toString(firstNum)) / Double.parseDouble(toString(secondNum));
                 break;
         }
 
         if(result != null){
-            return "" + result;
+            result = result * 1000000;
+            long roundedResult = Math.round(result);
+            double finalResult = roundedResult / 1000000.0;
+            return "" + finalResult;
         }
         return "Invalid calculation";
     }
@@ -101,11 +105,26 @@ public class Calculator{
         if(input != null){
             digitOfCalculation = calcChars[i];
             i = spaceRemover(calcChars, i);
-            while ((i) < calcChars.length && Character.isDigit(digitOfCalculation)) {
-                argumentNumber.add(digitOfCalculation);
-                i++;
-                if (i < calcChars.length) {
-                    digitOfCalculation = calcChars[i];
+            // Uses an int value to check the number of decimal places in the current number
+            int validDecimal = 0;
+            while ((i) < calcChars.length && (Character.isDigit(digitOfCalculation) || digitOfCalculation == '.')) {
+                if(digitOfCalculation != '.'){
+                    argumentNumber.add(digitOfCalculation);
+                    i++;
+                    if (i < calcChars.length) {
+                        digitOfCalculation = calcChars[i];
+                    }
+                } else {
+                    validDecimal = validDecimal + 1;
+                    // Valid decimal place check
+                    if(validDecimal > 1){
+                        return null;
+                    }
+                    argumentNumber.add(digitOfCalculation);
+                    i++;
+                    if (i < calcChars.length) {
+                        digitOfCalculation = calcChars[i];
+                    }
                 }
             }
             i = spaceRemover(calcChars, i);
