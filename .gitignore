@@ -1,0 +1,10 @@
+.DS_Store
+.idea/.gitignore
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+CalcCloneV1.iml
+out/production/CalcCloneV1/Calculator.class
+out/production/CalcCloneV1/Calculator.class
+out/production/CalcCloneV1/Operations.class
+out/production/CalcCloneV1/UserInput.class
