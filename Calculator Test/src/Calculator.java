@@ -29,6 +29,7 @@ public class Calculator{
             while (index < calcChars.length) {
                 currentNumber = parseNumber(currentNumber, index, calcChars);
                 boolean numberUsed = numberAdder(currentNumber, numbers);
+                currentNumber.clear();
                 if (!numberUsed) {
                     if(numbers.size() == 1){
                         return numbers.getFirst();
@@ -42,6 +43,7 @@ public class Calculator{
                     if (!operatorUsed){
                         return "Invalid Operator";
                     }
+                    currentOperator.clear();
                 }
             }
             // Change this to support negative nums
@@ -52,6 +54,9 @@ public class Calculator{
         } else {
             for (int e = 0; e < operators.size(); e++) {
                 if (operators.get(e).equals("/")) {
+                    if (numbers.get((e+1)).equals("0")) {
+                        return "Division by 0 is not allowed";
+                    }
                     double result = (Double.parseDouble(numbers.get(e)) / Double.parseDouble(numbers.get((e + 1))));
                     String roundResult = rounder(result);
                     numbers.set(e, roundResult);
@@ -78,10 +83,7 @@ public class Calculator{
                     numbers.remove((e + 1));
                     operators.remove(e);
                     e--;
-                }
-            }
-            for (int e = 0; e < operators.size(); e++) {
-                if (operators.get(e).equals("-")) {
+                }else if (operators.get(e).equals("-")) {
                     double result = (Double.parseDouble(numbers.get(e)) - Double.parseDouble(numbers.get((e + 1))));
                     String roundResult = rounder(result);
                     numbers.set(e, roundResult);
@@ -91,25 +93,7 @@ public class Calculator{
                 }
             }
         }
-
-        Double result = null;
-        switch(operation){
-            case ADD:
-                result = Double.parseDouble(toString(currentNumber)) + Double.parseDouble(toString(currentOperator));
-                break;
-            case SUBTRACT:
-                result = Double.parseDouble(toString(currentNumber)) - Double.parseDouble(toString(currentOperator));
-                break;
-            case MULTIPLY:
-                result = Double.parseDouble(toString(currentNumber)) * Double.parseDouble(toString(currentOperator));
-                break;
-            case DIVIDE:
-                if(Double.parseDouble(toString(currentOperator)) == 0){
-                    return "Invalid Calculation";
-                }
-                result = Double.parseDouble(toString(currentNumber)) / Double.parseDouble(toString(currentOperator));
-                break;
-        }
+        return numbers.getFirst();
     }
 
     /**
@@ -256,7 +240,7 @@ public class Calculator{
     }
 
     private boolean numberAdder(ArrayList<Character> currentNumber, ArrayList<String> numbers){
-        if (currentNumber != null) {
+        if (currentNumber != null && !currentNumber.isEmpty()) {
             numbers.add(toString(currentNumber));
             return true;
         } else {
