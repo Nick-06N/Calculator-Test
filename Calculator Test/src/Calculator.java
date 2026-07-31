@@ -25,49 +25,70 @@ public class Calculator{
         ArrayList<Character> currentOperator = new ArrayList<>();
         if(input != null){
             char[] calcChars = input.toCharArray();
+            // Computes and adds numbers and operators to two separate ArrayLists, ending this process short if invalid format.
             while (index < calcChars.length) {
                 currentNumber = parseNumber(currentNumber, index, calcChars);
-                if (index < calcChars.length){
-                    currentOperator = parseOperator(currentOperator, index, calcChars);
-                    operatorSimplify(currentOperator, operators);
-                }
-                }
-                // Adds parsed number to numbers ArrayList
-                if (currentNumber != null) {
-                    numbers.add(toString(currentNumber));
-                } else {
-                    if (numbers.size() == 1) {
+                boolean numberUsed = numberAdder(currentNumber, numbers);
+                if (!numberUsed) {
+                    if(numbers.size() == 1){
                         return numbers.getFirst();
                     } else {
-                        return "Invalid Calculation";
+                        return "Invalid Number Used";
                     }
                 }
-                // Change this to support negative nums
-
-            
-            // If no operator is provided after the first number, that number is returned
-            // if(digitOfCalculation != Operations.ADD.getSymbol() && digitOfCalculation != Operations.SUBTRACT.getSymbol() && digitOfCalculation != Operations.DIVIDE.getSymbol() && digitOfCalculation != Operations.MULTIPLY.getSymbol()){
-            //    return toString(currentNumber);
-            // }
-
-            // Determine the operation type
-            if(digitOfCalculation == Operations.ADD.getSymbol()){
-                operation = Operations.ADD;
-                index++;
-            } else if(digitOfCalculation == Operations.SUBTRACT.getSymbol()){
-                operation = Operations.SUBTRACT;
-                index++;
-            } else if(digitOfCalculation == Operations.MULTIPLY.getSymbol()){
-                operation = Operations.MULTIPLY;
-                index++;
-            } else{
-                operation = Operations.DIVIDE;
-                index++;
+                if (index < calcChars.length){
+                    currentOperator = parseOperator(currentOperator, index, calcChars);
+                    boolean operatorUsed = operatorSimplify(currentOperator, operators);
+                    if (!operatorUsed){
+                        return "Invalid Operator";
+                    }
+                }
             }
+            // Change this to support negative nums
+        }
 
-            currentOperator = parseNumber(currentOperator, index, calcChars);
-            if(currentOperator.isEmpty()){
-                return "Invalid Calculation";
+        if (numbers.size() == operators.size()){
+            return "Incomplete Calculation";
+        } else {
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("/")) {
+                    double result = (Double.parseDouble(numbers.get(e)) / Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
+            }
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("*")) {
+                    double result = (Double.parseDouble(numbers.get(e)) * Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
+            }
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("+")) {
+                    double result = (Double.parseDouble(numbers.get(e)) + Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
+            }
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("-")) {
+                    double result = (Double.parseDouble(numbers.get(e)) - Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
             }
         }
 
@@ -89,18 +110,10 @@ public class Calculator{
                 result = Double.parseDouble(toString(currentNumber)) / Double.parseDouble(toString(currentOperator));
                 break;
         }
-
-        if(result != null){
-            result = result * 1000000;
-            long roundedResult = Math.round(result);
-            double finalResult = roundedResult / 1000000.0;
-            return "" + finalResult;
-        }
-        return "Invalid calculation";
     }
 
     /**
-     * Returns array contents as a string
+     * Returns Character array contents as a string
      */
     public String toString(ArrayList<Character> arrayList) {
         StringBuilder text = new StringBuilder();
@@ -109,6 +122,17 @@ public class Calculator{
         }
         return text.toString();
     }
+
+//    /**
+//     * Returns String array contents as a string
+//     */
+//    public String toString(ArrayList<String> arrayList) {
+//        StringBuilder text = new StringBuilder();
+//        for(String i: arrayList){
+//            text.append(i);
+//        }
+//        return text.toString();
+//    }
 
     /**
      * Convert a number into an ArrayList of type Character.
@@ -203,16 +227,17 @@ public class Calculator{
         return (digitOfCalculation == Operations.ADD.getSymbol() || digitOfCalculation == Operations.SUBTRACT.getSymbol() || digitOfCalculation == Operations.DIVIDE.getSymbol() || digitOfCalculation == Operations.MULTIPLY.getSymbol());
     }
 
-    private void operatorSimplify(ArrayList<Character> currentOperator, ArrayList<String> operators){
+    private boolean operatorSimplify(ArrayList<Character> currentOperator, ArrayList<String> operators){
         // Normalises valid multiple operator combinations to normalise into their simplest equivalent
         if (currentOperator != null) {
             if (currentOperator.size() == 1) {
                 operators.add(toString(currentOperator));
+                return true;
             } else if (currentOperator.size() > 1) {
                 int opNum = 0;
                 for (Character o : currentOperator) {
                     if ((o == '/') || (o == '*')) {
-                        return; // FIX THIS TO STOP CALCULATION
+                        return false;
                     } else if (o == '-') {
                         opNum++;
                     }
@@ -224,8 +249,29 @@ public class Calculator{
                     currentOperator.add('-');
                 }
                 operators.add(toString(currentOperator));
+                return true;
             }
         }
+        return false;
+    }
+
+    private boolean numberAdder(ArrayList<Character> currentNumber, ArrayList<String> numbers){
+        if (currentNumber != null) {
+            numbers.add(toString(currentNumber));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private String rounder(Double result){
+        if(result != null){
+            result = result * 1000000;
+            long roundedResult = Math.round(result);
+            double finalResult = roundedResult / 1000000.0;
+            return "" + finalResult;
+        }
+        return "Invalid calculation";
     }
 }
 
