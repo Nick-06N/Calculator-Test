@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.math.*;
 
 public class Calculator{
-    private int output;
     private String input;
     private Operations operation;
     private char digitOfCalculation;
@@ -20,71 +19,101 @@ public class Calculator{
     }
 
     private String calculate(){
-        ArrayList<Character> firstNum = new ArrayList<>();
-        ArrayList<Character> secondNum = new ArrayList<>();
+        ArrayList<String> numbers = new ArrayList<>();
+        ArrayList<String> operators = new ArrayList<>();
+        ArrayList<Character> currentNumber = new ArrayList<>();
+        ArrayList<Character> currentOperator = new ArrayList<>();
         if(input != null){
             char[] calcChars = input.toCharArray();
-            firstNum = parseNumber(firstNum, index, calcChars);
-            if(firstNum.isEmpty()){
-                return "Invalid Calculation";
+            // Computes and adds numbers and operators to two separate ArrayLists, ending this process short if invalid format.
+            while (index < calcChars.length) {
+                currentNumber = parseNumber(currentNumber, index, calcChars);
+                boolean numberUsed = numberAdder(currentNumber, numbers);
+                if (!numberUsed) {
+                    if(numbers.size() == 1){
+                        return numbers.getFirst();
+                    } else {
+                        return "Invalid Number Used";
+                    }
+                }
+                if (index < calcChars.length){
+                    currentOperator = parseOperator(currentOperator, index, calcChars);
+                    boolean operatorUsed = operatorSimplify(currentOperator, operators);
+                    if (!operatorUsed){
+                        return "Invalid Operator";
+                    }
+                }
             }
+            // Change this to support negative nums
+        }
 
-            // If no operator is provided after the first number, that number is returned
-            if(digitOfCalculation != Operations.ADD.getSymbol() && digitOfCalculation != Operations.SUBTRACT.getSymbol() && digitOfCalculation != Operations.DIVIDE.getSymbol() && digitOfCalculation != Operations.MULTIPLY.getSymbol()){
-                return toString(firstNum);
+        if (numbers.size() == operators.size()){
+            return "Incomplete Calculation";
+        } else {
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("/")) {
+                    double result = (Double.parseDouble(numbers.get(e)) / Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
             }
-
-            // Determine the operation type
-            if(digitOfCalculation == Operations.ADD.getSymbol()){
-                operation = Operations.ADD;
-                index++;
-            } else if(digitOfCalculation == Operations.SUBTRACT.getSymbol()){
-                operation = Operations.SUBTRACT;
-                index++;
-            } else if(digitOfCalculation == Operations.MULTIPLY.getSymbol()){
-                operation = Operations.MULTIPLY;
-                index++;
-            } else{
-                operation = Operations.DIVIDE;
-                index++;
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("*")) {
+                    double result = (Double.parseDouble(numbers.get(e)) * Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
             }
-
-            secondNum = parseNumber(secondNum, index, calcChars);
-            if(secondNum.isEmpty()){
-                return "Invalid Calculation";
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("+")) {
+                    double result = (Double.parseDouble(numbers.get(e)) + Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
+            }
+            for (int e = 0; e < operators.size(); e++) {
+                if (operators.get(e).equals("-")) {
+                    double result = (Double.parseDouble(numbers.get(e)) - Double.parseDouble(numbers.get((e + 1))));
+                    String roundResult = rounder(result);
+                    numbers.set(e, roundResult);
+                    numbers.remove((e + 1));
+                    operators.remove(e);
+                    e--;
+                }
             }
         }
 
         Double result = null;
         switch(operation){
             case ADD:
-                result = Double.parseDouble(toString(firstNum)) + Double.parseDouble(toString(secondNum));
+                result = Double.parseDouble(toString(currentNumber)) + Double.parseDouble(toString(currentOperator));
                 break;
             case SUBTRACT:
-                result = Double.parseDouble(toString(firstNum)) - Double.parseDouble(toString(secondNum));
+                result = Double.parseDouble(toString(currentNumber)) - Double.parseDouble(toString(currentOperator));
                 break;
             case MULTIPLY:
-                result = Double.parseDouble(toString(firstNum)) * Double.parseDouble(toString(secondNum));
+                result = Double.parseDouble(toString(currentNumber)) * Double.parseDouble(toString(currentOperator));
                 break;
             case DIVIDE:
-                if(Double.parseDouble(toString(secondNum)) == 0){
+                if(Double.parseDouble(toString(currentOperator)) == 0){
                     return "Invalid Calculation";
                 }
-                result = Double.parseDouble(toString(firstNum)) / Double.parseDouble(toString(secondNum));
+                result = Double.parseDouble(toString(currentNumber)) / Double.parseDouble(toString(currentOperator));
                 break;
         }
-
-        if(result != null){
-            result = result * 1000000;
-            long roundedResult = Math.round(result);
-            double finalResult = roundedResult / 1000000.0;
-            return "" + finalResult;
-        }
-        return "Invalid calculation";
     }
 
     /**
-     * Returns array contents as a string
+     * Returns Character array contents as a string
      */
     public String toString(ArrayList<Character> arrayList) {
         StringBuilder text = new StringBuilder();
@@ -94,14 +123,25 @@ public class Calculator{
         return text.toString();
     }
 
+//    /**
+//     * Returns String array contents as a string
+//     */
+//    public String toString(ArrayList<String> arrayList) {
+//        StringBuilder text = new StringBuilder();
+//        for(String i: arrayList){
+//            text.append(i);
+//        }
+//        return text.toString();
+//    }
+
     /**
      * Convert a number into an ArrayList of type Character.
-     * @param argumentNumber    takes in the number that the argument is
+     * @param number    takes in the number that the argument is
      * @param i                 index of position of list
      * @param calcChars         the char Array of the whole calculation which is to be processed
      * @return                  returns ArrayList of Characters corresponding to first numerical argument
      */
-    public ArrayList<Character> parseNumber(ArrayList<Character> argumentNumber, int i, char[] calcChars){
+    public ArrayList<Character> parseNumber(ArrayList<Character> number, int i, char[] calcChars){
         if(input != null){
             digitOfCalculation = calcChars[i];
             i = spaceRemover(calcChars, i);
@@ -109,7 +149,7 @@ public class Calculator{
             int validDecimal = 0;
             while ((i) < calcChars.length && (Character.isDigit(digitOfCalculation) || digitOfCalculation == '.')) {
                 if(digitOfCalculation != '.'){
-                    argumentNumber.add(digitOfCalculation);
+                    number.add(digitOfCalculation);
                     i++;
                     if (i < calcChars.length) {
                         digitOfCalculation = calcChars[i];
@@ -120,7 +160,7 @@ public class Calculator{
                     if(validDecimal > 1){
                         return null;
                     }
-                    argumentNumber.add(digitOfCalculation);
+                    number.add(digitOfCalculation);
                     i++;
                     if (i < calcChars.length) {
                         digitOfCalculation = calcChars[i];
@@ -129,7 +169,39 @@ public class Calculator{
             }
             i = spaceRemover(calcChars, i);
             index = i;
-            return argumentNumber;
+            return number;
+        }
+        return null;
+    }
+
+    private ArrayList<Character> parseOperator(ArrayList<Character> operator, int i, char[] calcChars){
+        if(input != null){
+            digitOfCalculation = calcChars[i];
+            // Uses an int value to check the number of decimal places in the current number
+            while ((i) < calcChars.length && isOperator(digitOfCalculation)) {
+                if(digitOfCalculation == Operations.ADD.getSymbol()) {
+                    operator.add(Operations.ADD.getSymbol());
+                    i++;
+                }
+                else if(digitOfCalculation == Operations.SUBTRACT.getSymbol()) {
+                    operator.add(Operations.SUBTRACT.getSymbol());
+                    i++;
+                }
+                else if(digitOfCalculation == Operations.MULTIPLY.getSymbol()) {
+                    operator.add(Operations.MULTIPLY.getSymbol());
+                    i++;
+                }
+                else if(digitOfCalculation == Operations.DIVIDE.getSymbol()){
+                    operator.add(Operations.DIVIDE.getSymbol());
+                    i++;
+                }
+                if (i < calcChars.length) {
+                    digitOfCalculation = calcChars[i];
+                }
+            }
+            
+            index = i;
+            return operator;
         }
         return null;
     }
@@ -145,6 +217,61 @@ public class Calculator{
             }
         }
         return i;
+    }
+
+    /**
+     * Checks if a symbol is a valid symbol in the defined subset
+     * @return true or false depending on if symbol is valid or not
+     */
+    private boolean isOperator(char digitOfCalculation){
+        return (digitOfCalculation == Operations.ADD.getSymbol() || digitOfCalculation == Operations.SUBTRACT.getSymbol() || digitOfCalculation == Operations.DIVIDE.getSymbol() || digitOfCalculation == Operations.MULTIPLY.getSymbol());
+    }
+
+    private boolean operatorSimplify(ArrayList<Character> currentOperator, ArrayList<String> operators){
+        // Normalises valid multiple operator combinations to normalise into their simplest equivalent
+        if (currentOperator != null) {
+            if (currentOperator.size() == 1) {
+                operators.add(toString(currentOperator));
+                return true;
+            } else if (currentOperator.size() > 1) {
+                int opNum = 0;
+                for (Character o : currentOperator) {
+                    if ((o == '/') || (o == '*')) {
+                        return false;
+                    } else if (o == '-') {
+                        opNum++;
+                    }
+                }
+                currentOperator.clear();
+                if ((opNum % 2) == 0) {
+                    currentOperator.add('+');
+                } else if ((opNum % 2) == 1) {
+                    currentOperator.add('-');
+                }
+                operators.add(toString(currentOperator));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean numberAdder(ArrayList<Character> currentNumber, ArrayList<String> numbers){
+        if (currentNumber != null) {
+            numbers.add(toString(currentNumber));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private String rounder(Double result){
+        if(result != null){
+            result = result * 1000000;
+            long roundedResult = Math.round(result);
+            double finalResult = roundedResult / 1000000.0;
+            return "" + finalResult;
+        }
+        return "Invalid calculation";
     }
 }
 
