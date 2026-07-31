@@ -54,6 +54,9 @@ public class Calculator{
         } else {
             for (int e = 0; e < operators.size(); e++) {
                 if (operators.get(e).equals("/")) {
+                    if (numbers.get((e+1)).equals("0")) {
+                        return "Division by 0 is not allowed";
+                    }
                     double result = (Double.parseDouble(numbers.get(e)) / Double.parseDouble(numbers.get((e + 1))));
                     String roundResult = rounder(result);
                     numbers.set(e, roundResult);
@@ -237,7 +240,7 @@ public class Calculator{
     }
 
     private boolean numberAdder(ArrayList<Character> currentNumber, ArrayList<String> numbers){
-        if (currentNumber != null) {
+        if (currentNumber != null && !currentNumber.isEmpty()) {
             numbers.add(toString(currentNumber));
             return true;
         } else {
