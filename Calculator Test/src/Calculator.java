@@ -107,17 +107,6 @@ public class Calculator{
         return text.toString();
     }
 
-//    /**
-//     * Returns String array contents as a string
-//     */
-//    public String toString(ArrayList<String> arrayList) {
-//        StringBuilder text = new StringBuilder();
-//        for(String i: arrayList){
-//            text.append(i);
-//        }
-//        return text.toString();
-//    }
-
     /**
      * Convert a number into an ArrayList of type Character.
      * @param number    takes in the number that the argument is
