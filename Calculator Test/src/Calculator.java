@@ -3,31 +3,32 @@ import java.util.ArrayList;
 import java.math.*;
 
 public class Calculator{
-    private String input;
+//    private String input;
     private Operations operation;
     private char digitOfCalculation;
-    private int index = 0;
+    private int index;
 
-    void main() {
-        while(true){
-            System.out.println(("What would you like to calculate?"));
-            UserInput current = new UserInput();
-            input = current.getCalculation();
-            System.out.println(calculate());
-            index = 0;
-        }
-    }
-
-    private String calculate(){
+    public String calculate(String input){
+        index = 0;
         ArrayList<String> numbers = new ArrayList<>();
         ArrayList<String> operators = new ArrayList<>();
         ArrayList<Character> currentNumber = new ArrayList<>();
         ArrayList<Character> currentOperator = new ArrayList<>();
         if(input != null){
             char[] calcChars = input.toCharArray();
+            // A leading '-' (optionally after spaces) is a negative sign on the first number,
+            // not a subtraction operator, as long as a digit or decimal point actually follows it.
+            index = spaceRemover(calcChars, index);
+            if (index < calcChars.length && calcChars[index] == Operations.SUBTRACT.getSymbol()) {
+                int afterSign = spaceRemover(calcChars, index + 1);
+                if (afterSign < calcChars.length && (Character.isDigit(calcChars[afterSign]) || calcChars[afterSign] == '.')) {
+                    currentNumber.add(Operations.SUBTRACT.getSymbol());
+                    index++;
+                }
+            }
             // Computes and adds numbers and operators to two separate ArrayLists, ending this process short if invalid format.
             while (index < calcChars.length) {
-                currentNumber = parseNumber(currentNumber, index, calcChars);
+                currentNumber = parseNumber(currentNumber, index, calcChars, input);
                 boolean numberUsed = numberAdder(currentNumber, numbers);
                 currentNumber.clear();
                 if (!numberUsed) {
@@ -38,7 +39,7 @@ public class Calculator{
                     }
                 }
                 if (index < calcChars.length){
-                    currentOperator = parseOperator(currentOperator, index, calcChars);
+                    currentOperator = parseOperator(currentOperator, index, calcChars, input);
                     boolean operatorUsed = operatorSimplify(currentOperator, operators);
                     if (!operatorUsed){
                         return "Invalid Operator";
@@ -46,52 +47,14 @@ public class Calculator{
                     currentOperator.clear();
                 }
             }
-            // Change this to support negative nums
         }
-
-        if (numbers.size() == operators.size()){
-            return "Incomplete Calculation";
-        } else {
-            for (int e = 0; e < operators.size(); e++) {
-                if (operators.get(e).equals("/")) {
-                    if (numbers.get((e+1)).equals("0")) {
-                        return "Division by 0 is not allowed";
-                    }
-                    double result = (Double.parseDouble(numbers.get(e)) / Double.parseDouble(numbers.get((e + 1))));
-                    String roundResult = rounder(result);
-                    numbers.set(e, roundResult);
-                    numbers.remove((e + 1));
-                    operators.remove(e);
-                    e--;
-                }
-            }
-            for (int e = 0; e < operators.size(); e++) {
-                if (operators.get(e).equals("*")) {
-                    double result = (Double.parseDouble(numbers.get(e)) * Double.parseDouble(numbers.get((e + 1))));
-                    String roundResult = rounder(result);
-                    numbers.set(e, roundResult);
-                    numbers.remove((e + 1));
-                    operators.remove(e);
-                    e--;
-                }
-            }
-            for (int e = 0; e < operators.size(); e++) {
-                if (operators.get(e).equals("+")) {
-                    double result = (Double.parseDouble(numbers.get(e)) + Double.parseDouble(numbers.get((e + 1))));
-                    String roundResult = rounder(result);
-                    numbers.set(e, roundResult);
-                    numbers.remove((e + 1));
-                    operators.remove(e);
-                    e--;
-                }else if (operators.get(e).equals("-")) {
-                    double result = (Double.parseDouble(numbers.get(e)) - Double.parseDouble(numbers.get((e + 1))));
-                    String roundResult = rounder(result);
-                    numbers.set(e, roundResult);
-                    numbers.remove((e + 1));
-                    operators.remove(e);
-                    e--;
-                }
-            }
+        boolean success = computeBrackets(numbers, operators);
+        if(!success){
+            return "Cannot divide by 0";
+        }
+        success = computePrecedenceOrder(numbers, operators, 0, (operators.size() - 1));
+        if(!success){
+            return "Cannot divide by 0";
         }
         return numbers.getFirst();
     }
@@ -114,7 +77,7 @@ public class Calculator{
      * @param calcChars         the char Array of the whole calculation which is to be processed
      * @return                  returns ArrayList of Characters corresponding to first numerical argument
      */
-    public ArrayList<Character> parseNumber(ArrayList<Character> number, int i, char[] calcChars){
+    public ArrayList<Character> parseNumber(ArrayList<Character> number, int i, char[] calcChars, String input){
         if(input != null){
             digitOfCalculation = calcChars[i];
             i = spaceRemover(calcChars, i);
@@ -147,11 +110,11 @@ public class Calculator{
         return null;
     }
 
-    private ArrayList<Character> parseOperator(ArrayList<Character> operator, int i, char[] calcChars){
+    private ArrayList<Character> parseOperator(ArrayList<Character> operator, int i, char[] calcChars, String input){
         if(input != null){
             digitOfCalculation = calcChars[i];
             // Uses an int value to check the number of decimal places in the current number
-            while ((i) < calcChars.length && isOperator(digitOfCalculation)) {
+            while ((i) < calcChars.length && Operations.isOperator(digitOfCalculation)) {
                 if(digitOfCalculation == Operations.ADD.getSymbol()) {
                     operator.add(Operations.ADD.getSymbol());
                     i++;
@@ -166,6 +129,14 @@ public class Calculator{
                 }
                 else if(digitOfCalculation == Operations.DIVIDE.getSymbol()){
                     operator.add(Operations.DIVIDE.getSymbol());
+                    i++;
+                }
+                else if(digitOfCalculation == Operations.OPEN_BRACKET.getSymbol()){
+                    operator.add(Operations.OPEN_BRACKET.getSymbol());
+                    i++;
+                }
+                else if(digitOfCalculation == Operations.CLOSE_BRACKET.getSymbol()){
+                    operator.add(Operations.CLOSE_BRACKET.getSymbol());
                     i++;
                 }
                 if (i < calcChars.length) {
@@ -193,39 +164,46 @@ public class Calculator{
     }
 
     /**
-     * Checks if a symbol is a valid symbol in the defined subset
-     * @return true or false depending on if symbol is valid or not
+     * Simplifies current operator ArrayList (e.g. +-+ becomes -).
+     * @param currentOperator current operator substring to be simplified.
+     * @param operators operators ArrayList in current calculation.
+     * @return true if valid operator ArrayList is provided that can be simplified, false if operator cannot be
+     *         simplified (e.g. /* cannot be simplified.
      */
-    private boolean isOperator(char digitOfCalculation){
-        return (digitOfCalculation == Operations.ADD.getSymbol() || digitOfCalculation == Operations.SUBTRACT.getSymbol() || digitOfCalculation == Operations.DIVIDE.getSymbol() || digitOfCalculation == Operations.MULTIPLY.getSymbol());
-    }
-
     private boolean operatorSimplify(ArrayList<Character> currentOperator, ArrayList<String> operators){
-        // Normalises valid multiple operator combinations to normalise into their simplest equivalent
-        if (currentOperator != null) {
-            if (currentOperator.size() == 1) {
-                operators.add(toString(currentOperator));
-                return true;
-            } else if (currentOperator.size() > 1) {
-                int opNum = 0;
-                for (Character o : currentOperator) {
-                    if ((o == '/') || (o == '*')) {
-                        return false;
-                    } else if (o == '-') {
-                        opNum++;
-                    }
+        // Normalises a run of consecutive operator characters (which may include +/- runs mixed
+        // with brackets, e.g. "x(") into the correct sequence of single-character tokens.
+        if (currentOperator == null || currentOperator.isEmpty()) {
+            return false;
+        }
+        int opNum = 0;
+        boolean plusMinus = false;
+        for (Character symbol : currentOperator) {
+            if (symbol == Operations.SUBTRACT.getSymbol()) {
+                opNum++;
+                plusMinus = true;
+            } else if (symbol == Operations.ADD.getSymbol()) {
+                plusMinus = true;
+            } else if (symbol == Operations.MULTIPLY.getSymbol() || symbol == Operations.DIVIDE.getSymbol()) {
+                if (plusMinus) {
+                    // e.g. "+x" or "-/" - a +/- run directly touching * or / with no number
+                    // or bracket between them is not a valid expression.
+                    return false;
                 }
-                currentOperator.clear();
-                if ((opNum % 2) == 0) {
-                    currentOperator.add('+');
-                } else if ((opNum % 2) == 1) {
-                    currentOperator.add('-');
+                operators.add(symbol.toString());
+            } else if (symbol == Operations.OPEN_BRACKET.getSymbol() || symbol == Operations.CLOSE_BRACKET.getSymbol()) {
+                if (plusMinus) {
+                    operators.add(((opNum % 2) == 0) ? Operations.ADD.getSymbol() + "" : Operations.SUBTRACT.getSymbol() + "");
+                    opNum = 0;
+                    plusMinus = false;
                 }
-                operators.add(toString(currentOperator));
-                return true;
+                operators.add(symbol.toString());
             }
         }
-        return false;
+        if (plusMinus) {
+            operators.add(((opNum % 2) == 0) ? Operations.ADD.getSymbol() + "" : Operations.SUBTRACT.getSymbol() + "");
+        }
+        return true;
     }
 
     private boolean numberAdder(ArrayList<Character> currentNumber, ArrayList<String> numbers){
@@ -245,6 +223,126 @@ public class Calculator{
             return "" + finalResult;
         }
         return "Invalid calculation";
+    }
+
+    /**
+     * Computes and removes brackets from operators ArrayList.
+     * @param numbers ArrayList of numbers in calculation.
+     * @param operators ArrayList of operators in calculation.
+     */
+    public boolean computeBrackets(ArrayList<String> numbers, ArrayList<String> operators) {
+        // Pad any unmatched open brackets with a closing bracket at the end.
+        long openCount = 0;
+        long closeCount = 0;
+        for (String element : operators) {
+            if (element.equals(Operations.OPEN_BRACKET.getSymbol() + "")) {
+                openCount++;
+            } else if (element.equals(Operations.CLOSE_BRACKET.getSymbol() + "")) {
+                closeCount++;
+            }
+        }
+        while (openCount > closeCount) {
+            operators.add(Operations.CLOSE_BRACKET.getSymbol() + "");
+            closeCount++;
+        }
+
+        // Resolve one bracket pair at a time: the first close bracket paired with the nearest
+        // preceding open bracket is always the innermost pair. Remove the close bracket (higher
+        // index) before the open bracket so the earlier removal doesn't invalidate the index of
+        // the token still to be removed.
+        int currentCloseBracketIndex;
+        while ((currentCloseBracketIndex = operators.indexOf(Operations.CLOSE_BRACKET.getSymbol() + "")) != -1) {
+            int currentOpenBracketIndex = -1;
+            for (int i = currentCloseBracketIndex - 1; i >= 0; i--) {
+                if (operators.get(i).equals(Operations.OPEN_BRACKET.getSymbol() + "")) {
+                    currentOpenBracketIndex = i;
+                    break;
+                }
+            }
+            if (currentOpenBracketIndex == -1) {
+                return false;
+            }
+            operators.remove(currentCloseBracketIndex);
+            operators.remove(currentOpenBracketIndex);
+            boolean success = computePrecedenceOrder(numbers, operators, currentOpenBracketIndex, (currentCloseBracketIndex - 2));
+            if (!success) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Computes precedence order and condenses list of numbers, working towards having one singular number in the
+     * numbers ArrayList, that being the final answer.
+     *
+     * @param numbers ArrayList of all the calculation's numbers in the order they were typed
+     * @param operators ArrayList of all calculation's numbers in the order they were typed
+     * @param startIndex the index at which you want to start the calculation
+     * @param endIndex the index at which you want to end the calculation
+     * @return true if successful computation false if not (division by 0)
+     */
+    public boolean computePrecedenceOrder(ArrayList<String> numbers, ArrayList<String> operators, int startIndex, int endIndex){
+        for (int e = startIndex; e <= endIndex; e++) {
+            if (operators.get(e).equals(Operations.DIVIDE.getSymbol() + "")) {
+                if (numbers.get((e+1)).equals("0")) {
+                    return false;
+                }
+                double result = (Double.parseDouble(numbers.get(e)) / Double.parseDouble(numbers.get((e + 1))));
+                String roundResult = rounder(result);
+                numbers.set(e, roundResult);
+                numbers.remove((e + 1));
+                operators.remove(e);
+                e--;
+                endIndex--;
+            }
+        }
+        for (int e = startIndex; e <= endIndex; e++) {
+            if (operators.get(e).equals((Operations.MULTIPLY.getSymbol() + ""))) {
+                double result = (Double.parseDouble(numbers.get(e)) * Double.parseDouble(numbers.get((e + 1))));
+                String roundResult = rounder(result);
+                numbers.set(e, roundResult);
+                numbers.remove((e + 1));
+                operators.remove(e);
+                e--;
+                endIndex--;
+            }
+        }
+        for (int e = startIndex; e <= endIndex; e++) {
+            if (operators.get(e).equals(Operations.ADD.getSymbol() + "")) {
+                double result = (Double.parseDouble(numbers.get(e)) + Double.parseDouble(numbers.get((e + 1))));
+                String roundResult = rounder(result);
+                numbers.set(e, roundResult);
+                numbers.remove((e + 1));
+                operators.remove(e);
+                e--;
+                endIndex--;
+            }else if (operators.get(e).equals(Operations.SUBTRACT.getSymbol() + "")) {
+                double result = (Double.parseDouble(numbers.get(e)) - Double.parseDouble(numbers.get((e + 1))));
+                String roundResult = rounder(result);
+                numbers.set(e, roundResult);
+                numbers.remove((e + 1));
+                operators.remove(e);
+                e--;
+                endIndex--;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Internal method of operatorSimplify method written to reduce code reuse.
+     * @param opNum
+     * @param currentOperator
+     * @param opIndex
+     */
+    public void plusMinusSimplify(int opNum, ArrayList<Character> currentOperator, int opIndex) {
+        if ((opNum % 2) == 0) {
+            currentOperator.add(opIndex, Operations.ADD.getSymbol());
+        } else if ((opNum % 2) == 1) {
+            currentOperator.add(opIndex, Operations.SUBTRACT.getSymbol());
+        }
+        opNum = 0;
     }
 }
 
