@@ -1,3 +1,2 @@
 # Calculator-Test
-Currently supports addition, subtraction, multiplication. and division of two integers.
-Precedence order and multiple arguments current WIP
+Supports addition, subtraction, multiplication and division with a precedence order using BIDMAS.
